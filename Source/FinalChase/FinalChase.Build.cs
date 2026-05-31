@@ -13,6 +13,7 @@ public class FinalChase : ModuleRules
                 "CoreUObject",
                 "Engine",
                 "InputCore",
+                "EnhancedInput",
                 "GameplayAbilities",
                 "GameplayTags",
                 "GameplayTasks"
