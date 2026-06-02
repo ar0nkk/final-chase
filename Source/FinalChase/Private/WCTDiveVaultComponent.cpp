@@ -150,7 +150,7 @@ bool UWCTDiveVaultComponent::CanDiveVault(FVector& OutLandingLocation) const
         Params
     );
 
-    if (bHitObstacle)
+    if (bBlockDiveVaultWhenObstacleTooHigh && bHitObstacle)
     {
         const float RelativeObstacleHeight = ObstacleHit.ImpactPoint.Z - ActorLocation.Z;
         if (RelativeObstacleHeight > MaxVaultObstacleHeight)

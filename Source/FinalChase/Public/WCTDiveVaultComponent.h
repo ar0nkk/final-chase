@@ -59,6 +59,9 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault", meta = (ClampMin = "0.0"))
     float MaxVaultObstacleHeight = 120.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault")
+    bool bBlockDiveVaultWhenObstacleTooHigh = false;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault", meta = (ClampMin = "0.0"))
     float LandingClearance = 35.0f;
 
