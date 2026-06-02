@@ -32,7 +32,8 @@ git clone https://github.com/ar0nkk/wct-ue5.git
 - **Shift**：飞扑
 - **左键**：伸左手
 - **右键**：伸右手
-- **C**：低速-蹲伏；高速-滑铲
+- **C**：低速-蹲伏；高速-滑铲
+
 
 ## 游戏特性
 - **动作系统（GAS驱动）**：全套动作基于 Epic 的 Gameplay Ability System (GAS) 构建
@@ -46,7 +47,7 @@ git clone https://github.com/ar0nkk/wct-ue5.git
 
 ## TODO
 ### High Priority
-- [ ] 动作优化
+- [ ] 动作优化
 - [ ] 添加更多和障碍物的交互动画
 - [ ] 添加体力系统或动作冷却时间
 - [ ] 其他平衡调整

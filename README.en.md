@@ -28,11 +28,11 @@ A 1v1 chase game (Chaser vs Runner)
 ## Controls (Updating...)
 - LAN multiplayer: Host enters the game, client connects by entering the host IP.
 - **WASD**: Move
-- **Space**: Jump
-- **Shift**: Sprint
-- **Left Click**: Dive / tag attempt (animation TBD)
+- **Space**: Jump or climb
+- **Shift**: Dive
+- **Left Click**: Reach left hand
+- **Right Click**: Reach right hand
 - **C**: Slow = crouch; fast = slide
-- **Ctrl**: Walk
 
 ## Features
 - **Action system (GAS-driven)**: Built on Epic's Gameplay Ability System (GAS).
@@ -46,8 +46,7 @@ A 1v1 chase game (Chaser vs Runner)
 
 ## TODO
 ### High Priority
-- [ ] Dive and other character actions
-- [ ] Level/arena setup
+- [ ] Action optimization
 - [ ] More interaction animations with obstacles
 - [ ] Stamina system or action cooldowns
 - [ ] Other balancing changes
@@ -57,3 +56,4 @@ A 1v1 chase game (Chaser vs Runner)
 - [ ] UI polish
 - [ ] Game settings (keybinds, etc.)
 - [ ] Spectator/VFX
+- [ ] Level/arena switching
