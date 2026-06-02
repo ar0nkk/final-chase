@@ -137,6 +137,11 @@ bool UWCTDiveVaultComponent::CanDiveVault(FVector& OutLandingLocation) const
     const FVector TraceEnd = TraceStart + Forward * DiveVaultDistance;
 
     FCollisionQueryParams Params(SCENE_QUERY_STAT(DiveVaultTrace), false, Owner);
+    if (bBlockDiveVaultWhenObstacleDetected && HasBlockingObstacleNearStart(ActorLocation, Forward, Params))
+    {
+        return false;
+    }
+
     FHitResult ObstacleHit;
     const bool bHitObstacle = GetWorld()->LineTraceSingleByChannel(
         ObstacleHit,
@@ -329,6 +334,29 @@ bool UWCTDiveVaultComponent::HasRoomForCapsuleAt(const FVector& Location, float 
         CapsuleShape,
         Params
     );
+}
+
+bool UWCTDiveVaultComponent::HasBlockingObstacleNearStart(const FVector& ActorLocation, const FVector& Forward, const FCollisionQueryParams& Params) const
+{
+    if (!GetWorld())
+    {
+        return false;
+    }
+
+    const FVector SweepStart = ActorLocation;
+    const FVector SweepEnd = ActorLocation + Forward * ObstacleBlockDistance;
+    const FCollisionShape SweepShape = FCollisionShape::MakeCapsule(ObstacleBlockSweepRadius, ObstacleBlockSweepHalfHeight);
+
+    FHitResult Hit;
+    return GetWorld()->SweepSingleByChannel(
+        Hit,
+        SweepStart,
+        SweepEnd,
+        FQuat::Identity,
+        VaultTraceChannel,
+        SweepShape,
+        Params
+    ) && Hit.bBlockingHit;
 }
 
 UCapsuleComponent* UWCTDiveVaultComponent::FindCapsuleComponent() const

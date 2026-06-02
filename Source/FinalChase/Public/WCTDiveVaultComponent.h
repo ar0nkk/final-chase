@@ -68,6 +68,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault", meta = (ClampMin = "0.0"))
     float ObstacleBlockDistance = 140.0f;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault", meta = (ClampMin = "1.0"))
+    float ObstacleBlockSweepRadius = 45.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault", meta = (ClampMin = "1.0"))
+    float ObstacleBlockSweepHalfHeight = 55.0f;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault", meta = (ClampMin = "0.0"))
     float LandingClearance = 35.0f;
 
@@ -126,6 +132,7 @@ private:
     void OnDiveVaultMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
     bool HasRoomForCapsuleAt(const FVector& Location, float CapsuleHalfHeight) const;
+    bool HasBlockingObstacleNearStart(const FVector& ActorLocation, const FVector& Forward, const FCollisionQueryParams& Params) const;
     UCapsuleComponent* FindCapsuleComponent() const;
     USkeletalMeshComponent* FindMeshComponent() const;
     UMovementComponent* FindMovementComponent() const;
