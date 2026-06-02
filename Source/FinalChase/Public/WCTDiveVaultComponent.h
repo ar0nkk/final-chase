@@ -24,7 +24,7 @@ public:
     virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
     UFUNCTION(BlueprintCallable, Category = "WCT|Movement|Dive Vault")
-    void StartDiveVault();
+    bool StartDiveVault();
 
     UFUNCTION(BlueprintCallable, Category = "WCT|Movement|Dive Vault")
     bool CanDiveVault(FVector& OutLandingLocation) const;
@@ -60,7 +60,13 @@ public:
     float MaxVaultObstacleHeight = 120.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault")
-    bool bBlockDiveVaultWhenObstacleTooHigh = false;
+    bool bBlockDiveVaultWhenObstacleTooHigh = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault")
+    bool bBlockDiveVaultWhenObstacleDetected = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault", meta = (ClampMin = "0.0"))
+    float ObstacleBlockDistance = 140.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault", meta = (ClampMin = "0.0"))
     float LandingClearance = 35.0f;
@@ -69,10 +75,10 @@ public:
     bool bDeactivateMovementDuringVault = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault")
-    bool bPredictMontageOnOwningClient = true;
+    bool bRequireLandingRoom = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault")
-    bool bRequireLandingRoom = true;
+    bool bSweepDuringDiveVaultMovement = true;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "WCT|Movement|Dive Vault")
     TEnumAsByte<ECollisionChannel> VaultTraceChannel = ECC_Visibility;
@@ -111,6 +117,7 @@ private:
     void BeginDiveVaultMovement();
     void FinishDiveVault();
     void PlayDiveVaultMontage();
+    void StopDiveVaultMontage();
     void DisableMoveMappingContext();
     void RestoreMoveMappingContext();
     bool IsLocallyControlledOwner() const;

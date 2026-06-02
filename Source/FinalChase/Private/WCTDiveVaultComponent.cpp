@@ -53,9 +53,9 @@ void UWCTDiveVaultComponent::TickComponent(float DeltaTime, ELevelTick TickType,
     NewLocation.Z += FMath::Sin(Alpha * PI) * DiveVaultHeight;
 
     FHitResult MoveHit;
-    Owner->SetActorLocation(NewLocation, true, &MoveHit);
+    Owner->SetActorLocation(NewLocation, bSweepDuringDiveVaultMovement, &MoveHit);
 
-    if (Alpha >= 1.0f || MoveHit.bBlockingHit)
+    if (Alpha >= 1.0f || (bSweepDuringDiveVaultMovement && MoveHit.bBlockingHit))
     {
         FinishDiveVault();
     }
@@ -68,12 +68,12 @@ void UWCTDiveVaultComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty
     DOREPLIFETIME(UWCTDiveVaultComponent, bIsDiveVaulting);
 }
 
-void UWCTDiveVaultComponent::StartDiveVault()
+bool UWCTDiveVaultComponent::StartDiveVault()
 {
     AActor* Owner = GetOwner();
     if (!Owner)
     {
-        return;
+        return false;
     }
 
     FVector LandingLocation;
@@ -84,19 +84,13 @@ void UWCTDiveVaultComponent::StartDiveVault()
             ClientDiveVaultRejected();
         }
 
-        return;
+        return false;
     }
 
     if (!Owner->HasAuthority())
     {
-        if (bPredictMontageOnOwningClient)
-        {
-            PlayDiveVaultMontage();
-        }
-
-        DisableMoveMappingContext();
         ServerStartDiveVault();
-        return;
+        return true;
     }
 
     bIsDiveVaulting = true;
@@ -110,6 +104,7 @@ void UWCTDiveVaultComponent::StartDiveVault()
     SetComponentTickEnabled(true);
     DisableMoveMappingContext();
     BP_OnDiveVaultStarted();
+    return true;
 }
 
 void UWCTDiveVaultComponent::ServerStartDiveVault_Implementation()
@@ -119,6 +114,7 @@ void UWCTDiveVaultComponent::ServerStartDiveVault_Implementation()
 
 void UWCTDiveVaultComponent::ClientDiveVaultRejected_Implementation()
 {
+    StopDiveVaultMontage();
     RestoreMoveMappingContext();
 }
 
@@ -150,10 +146,12 @@ bool UWCTDiveVaultComponent::CanDiveVault(FVector& OutLandingLocation) const
         Params
     );
 
-    if (bBlockDiveVaultWhenObstacleTooHigh && bHitObstacle)
+    if (bHitObstacle)
     {
         const float RelativeObstacleHeight = ObstacleHit.ImpactPoint.Z - ActorLocation.Z;
-        if (RelativeObstacleHeight > MaxVaultObstacleHeight)
+        const float ObstacleDistance = FVector::Dist2D(ActorLocation, ObstacleHit.ImpactPoint);
+        if ((bBlockDiveVaultWhenObstacleDetected && ObstacleDistance <= ObstacleBlockDistance) ||
+            (bBlockDiveVaultWhenObstacleTooHigh && RelativeObstacleHeight > MaxVaultObstacleHeight))
         {
             return false;
         }
@@ -282,6 +280,22 @@ void UWCTDiveVaultComponent::PlayDiveVaultMontage()
             FOnMontageEnded EndDelegate;
             EndDelegate.BindUObject(this, &UWCTDiveVaultComponent::OnDiveVaultMontageEnded);
             AnimInstance->Montage_SetEndDelegate(EndDelegate, DiveVaultMontage);
+        }
+    }
+}
+
+void UWCTDiveVaultComponent::StopDiveVaultMontage()
+{
+    if (!DiveVaultMontage)
+    {
+        return;
+    }
+
+    if (USkeletalMeshComponent* Mesh = FindMeshComponent())
+    {
+        if (UAnimInstance* AnimInstance = Mesh->GetAnimInstance())
+        {
+            AnimInstance->Montage_Stop(0.1f, DiveVaultMontage);
         }
     }
 }
