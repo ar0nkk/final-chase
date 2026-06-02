@@ -28,11 +28,11 @@ git clone https://github.com/ar0nkk/wct-ue5.git
 ## 操作方法 (更新中...)
 - 目前使用局域网联机，主机进入游戏后，客户端输入主机的 IP 地址进行连接
 - **WASD**：移动
-- **Space**：跳跃
-- **Shift**：冲刺
-- **左键**：飞扑抓捕（动画待补充）
-- **C**：低速-蹲伏；高速-滑铲
-- **Ctrl**：行走
+- **Space**：跳跃或攀爬
+- **Shift**：飞扑
+- **左键**：伸左手
+- **右键**：伸右手
+- **C**：低速-蹲伏；高速-滑铲
 
 ## 游戏特性
 - **动作系统（GAS驱动）**：全套动作基于 Epic 的 Gameplay Ability System (GAS) 构建
@@ -46,8 +46,7 @@ git clone https://github.com/ar0nkk/wct-ue5.git
 
 ## TODO
 ### High Priority
-- [ ] 飞扑等角色动作
-- [ ] 场景搭建
+- [ ] 动作优化
 - [ ] 添加更多和障碍物的交互动画
 - [ ] 添加体力系统或动作冷却时间
 - [ ] 其他平衡调整
@@ -57,3 +56,4 @@ git clone https://github.com/ar0nkk/wct-ue5.git
 - [ ] UI 美化
 - [ ] 游戏设置（操作键位等）
 - [ ] 场外观众特效
+- [ ] 关卡切换
