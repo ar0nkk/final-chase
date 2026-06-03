@@ -10,7 +10,7 @@
 
 AWCTGameMode::AWCTGameMode()
 {
-    TotalRounds = 8;
+    TotalRounds = 2;
     PreRoundSeconds = 8.0f;
     ChasingSeconds = 20.0f;
     RoundEndSeconds = 2.0f;
@@ -34,6 +34,8 @@ void AWCTGameMode::BeginPlay()
             WCTGameState->SetRoundPhase(ERoundPhase::WaitingForPlayers);
             WCTGameState->SetCurrentRound(0);
             WCTGameState->SetTimeRemaining(0.0f);
+            WCTGameState->SetRoundResult(EWCTRoundResult::None);
+            WCTGameState->SetMatchWinner(EWCTMatchWinner::None);
         }
     }
 }
@@ -227,10 +229,28 @@ void AWCTGameMode::FinishMatch()
     AWCTGameState* WCTGameState = GetWCTGameState();
     if (WCTGameState)
     {
+        const AWCTPlayerState* RunnerState = GetWCTPlayerState(RunnerController.Get());
+        const AWCTPlayerState* ChaserState = GetWCTPlayerState(ChaserController.Get());
+        EWCTMatchWinner MatchWinner = EWCTMatchWinner::Draw;
+
+        if (!RunnerState || !ChaserState)
+        {
+            MatchWinner = EWCTMatchWinner::None;
+        }
+        else if (RunnerState->WCTScore > ChaserState->WCTScore)
+        {
+            MatchWinner = EWCTMatchWinner::Runner;
+        }
+        else if (ChaserState->WCTScore > RunnerState->WCTScore)
+        {
+            MatchWinner = EWCTMatchWinner::Chaser;
+        }
+
         WCTGameState->SetRoundPhase(ERoundPhase::MatchOver);
         WCTGameState->SetTimeRemaining(0.0f);
         // 修复枚举
         WCTGameState->SetRoundResult(EWCTRoundResult::None);
+        WCTGameState->SetMatchWinner(MatchWinner);
     }
 
     if (RunnerController.IsValid())
