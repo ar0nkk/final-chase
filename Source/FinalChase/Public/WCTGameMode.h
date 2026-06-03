@@ -39,6 +39,9 @@ protected:
     float RoundEndSeconds;
 
 private:
+    void PlayGlobalStartSound();
+    void PlayGlobalEndSound();
+
     void TryStartMatch();
     void StartNextRound();
     void BeginPreRound();
@@ -63,7 +66,7 @@ private:
     float RoundPhaseEndTime;
     bool bMatchStarted;
 
-    TWeakObjectPtr<AController> HostController;
+    TWeakObjectPtr<APlayerController> HostController;
     TWeakObjectPtr<AController> RunnerController;
     TWeakObjectPtr<AController> ChaserController;
     TWeakObjectPtr<AController> NextRunnerController;

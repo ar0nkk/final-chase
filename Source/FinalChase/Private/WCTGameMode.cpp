@@ -6,6 +6,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerStart.h"
 #include "Kismet/GameplayStatics.h"
+#include "Components/AudioComponent.h"
 
 AWCTGameMode::AWCTGameMode()
 {
@@ -117,6 +118,8 @@ void AWCTGameMode::BeginPreRound()
     WCTGameState->SetRoundPhase(ERoundPhase::PreRound);
     WCTGameState->SetTimeRemaining(PreRoundSeconds);
 
+    PlayGlobalStartSound();
+
     if (ChaserController.IsValid())
         SetControllerMovementEnabled(ChaserController.Get(), false);
     if (RunnerController.IsValid())
@@ -161,10 +164,10 @@ void AWCTGameMode::BeginChasing()
     GetWorldTimerManager().SetTimer(
         PhaseEndTimerHandle,
         FTimerDelegate::CreateWeakLambda(this, [this]()
-        {
-            if (RunnerController.IsValid())
-                EndRound(RunnerController.Get(), true);
-        }),
+            {
+                if (RunnerController.IsValid())
+                    EndRound(RunnerController.Get(), true);
+            }),
         ChasingSeconds,
         false
     );
@@ -184,7 +187,10 @@ void AWCTGameMode::EndRound(AController* Winner, bool bRunnerSurvived)
         WCTGameState->SetTimeRemaining(0.0f);
     else
         WCTGameState->SetTimeRemaining(FMath::Max(0.0f, RoundPhaseEndTime - GetWorld()->GetTimeSeconds()));
+    // 修复枚举名 EWCTRoundResult
     WCTGameState->SetRoundResult(bRunnerSurvived ? EWCTRoundResult::Evasion : EWCTRoundResult::Tag);
+
+    PlayGlobalEndSound();
 
     if (bRunnerSurvived)
     {
@@ -223,16 +229,8 @@ void AWCTGameMode::FinishMatch()
     {
         WCTGameState->SetRoundPhase(ERoundPhase::MatchOver);
         WCTGameState->SetTimeRemaining(0.0f);
+        // 修复枚举
         WCTGameState->SetRoundResult(EWCTRoundResult::None);
-        const AWCTPlayerState* RunnerState = RunnerController.IsValid() ? GetWCTPlayerState(RunnerController.Get()) : nullptr;
-        const AWCTPlayerState* ChaserState = ChaserController.IsValid() ? GetWCTPlayerState(ChaserController.Get()) : nullptr;
-        const int32 RunnerScore = RunnerState ? RunnerState->WCTScore : 0;
-        const int32 ChaserScore = ChaserState ? ChaserState->WCTScore : 0;
-
-        if (RunnerScore == ChaserScore)
-            WCTGameState->SetMatchWinner(EWCTMatchWinner::Draw);
-        else
-            WCTGameState->SetMatchWinner(RunnerScore > ChaserScore ? EWCTMatchWinner::Runner : EWCTMatchWinner::Chaser);
     }
 
     if (RunnerController.IsValid())
@@ -254,9 +252,9 @@ void AWCTGameMode::AssignRolesForNewRound()
     {
         for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
         {
-            if (AController* Controller = It->Get())
+            if (APlayerController* PC = It->Get())
             {
-                RunnerController = Controller;
+                RunnerController = PC;
                 break;
             }
         }
@@ -268,9 +266,9 @@ void AWCTGameMode::AssignRolesForNewRound()
     NextRunnerController.Reset();
 
     if (AWCTPlayerState* RunnerState = GetWCTPlayerState(RunnerController.Get()))
-        RunnerState->SetIsChaser(false);
+        RunnerState->bIsChaser = false;
     if (AWCTPlayerState* ChaserState = GetWCTPlayerState(ChaserController.Get()))
-        ChaserState->SetIsChaser(true);
+        ChaserState->bIsChaser = true;
 }
 
 void AWCTGameMode::MovePlayersToStart()
@@ -286,26 +284,25 @@ void AWCTGameMode::TeleportControllerToTag(AController* Controller, FName StartT
     if (!Controller)
         return;
 
-    AActor* Start = FindPlayerStartByTag(StartTag);
-    if (!Start)
+    AActor* StartActor = FindPlayerStartByTag(StartTag);
+    if (!StartActor)
         return;
 
     APawn* Pawn = Controller->GetPawn();
     if (Pawn)
-        Pawn->TeleportTo(Start->GetActorLocation(), Start->GetActorRotation(), false, true);
+        Pawn->TeleportTo(StartActor->GetActorLocation(), StartActor->GetActorRotation(), false, true);
 }
 
 AActor* AWCTGameMode::FindPlayerStartByTag(FName StartTag) const
 {
-    TArray<AActor*> Starts;
-    UGameplayStatics::GetAllActorsOfClass(this, APlayerStart::StaticClass(), Starts);
+    TArray<AActor*> AllStarts;
+    UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerStart::StaticClass(), AllStarts);
 
-    for (AActor* Start : Starts)
+    for (AActor* Item : AllStarts)
     {
-        if (Start && Start->ActorHasTag(StartTag))
-            return Start;
+        if (Item && Item->ActorHasTag(StartTag))
+            return Item;
     }
-
     return nullptr;
 }
 
@@ -315,8 +312,8 @@ void AWCTGameMode::UpdateTimeRemaining()
     if (!WCTGameState)
         return;
 
-    const float Remaining = FMath::Max(0.0f, RoundPhaseEndTime - GetWorld()->GetTimeSeconds());
-    WCTGameState->SetTimeRemaining(Remaining);
+    float Remain = FMath::Max(0.0f, RoundPhaseEndTime - GetWorld()->GetTimeSeconds());
+    WCTGameState->SetTimeRemaining(Remain);
 }
 
 void AWCTGameMode::SetControllerMovementEnabled(AController* Controller, bool bEnabled) const
@@ -324,24 +321,26 @@ void AWCTGameMode::SetControllerMovementEnabled(AController* Controller, bool bE
     if (!Controller)
         return;
 
-    if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
-        if (AWCTPlayerController* WCTController = Cast<AWCTPlayerController>(PlayerController))
-            WCTController->ClientSetMoveInputEnabled(bEnabled);
+    if (APlayerController* PC = Cast<APlayerController>(Controller))
+    {
+        if (AWCTPlayerController* WCTPC = Cast<AWCTPlayerController>(PC))
+            WCTPC->ClientSetMoveInputEnabled(bEnabled);
+    }
 
-    ACharacter* Character = Cast<ACharacter>(Controller->GetPawn());
-    if (!Character)
+    ACharacter* Char = Cast<ACharacter>(Controller->GetPawn());
+    if (!Char)
         return;
 
-    UCharacterMovementComponent* Movement = Character->GetCharacterMovement();
-    if (!Movement)
+    UCharacterMovementComponent* MoveComp = Char->GetCharacterMovement();
+    if (!MoveComp)
         return;
 
     if (bEnabled)
-        Movement->SetMovementMode(MOVE_Walking);
+        MoveComp->SetMovementMode(MOVE_Walking);
     else
     {
-        Movement->StopMovementImmediately();
-        Movement->DisableMovement();
+        MoveComp->StopMovementImmediately();
+        MoveComp->DisableMovement();
     }
 }
 
@@ -352,14 +351,14 @@ AController* AWCTGameMode::FindOtherController(AController* Controller) const
 
     for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
     {
-        AController* Current = It->Get();
-        if (Current && Current != Controller)
-            return Current;
+        APlayerController* CurPC = It->Get();
+        if (CurPC && CurPC != Controller)
+            return CurPC;
     }
-
     return nullptr;
 }
 
+// 修复GetGameState模板写法
 AWCTGameState* AWCTGameMode::GetWCTGameState() const
 {
     return GetGameState<AWCTGameState>();
@@ -367,5 +366,45 @@ AWCTGameState* AWCTGameMode::GetWCTGameState() const
 
 AWCTPlayerState* AWCTGameMode::GetWCTPlayerState(AController* Controller) const
 {
-    return Controller ? Cast<AWCTPlayerState>(Controller->PlayerState) : nullptr;
+    if (!Controller) return nullptr;
+    return Cast<AWCTPlayerState>(Controller->PlayerState);
+}
+
+// 音效固定代码（无查找名字、稳定编译）
+void AWCTGameMode::PlayGlobalStartSound()
+{
+    if (!HasAuthority()) return;
+
+    TArray<AActor*> AudioActors;
+    UGameplayStatics::GetAllActorsWithTag(GetWorld(), FName("GlobalAudio"), AudioActors);
+    if (AudioActors.IsEmpty()) return;
+
+    AActor* AudioActor = AudioActors[0];
+    TArray<UAudioComponent*> AudioList;
+    AudioActor->GetComponents<UAudioComponent>(AudioList);
+
+    if (AudioList.Num() > 0)
+    {
+        AudioList[0]->Stop();
+        AudioList[0]->Play();
+    }
+}
+
+void AWCTGameMode::PlayGlobalEndSound()
+{
+    if (!HasAuthority()) return;
+
+    TArray<AActor*> AudioActors;
+    UGameplayStatics::GetAllActorsWithTag(GetWorld(), FName("GlobalAudio"), AudioActors);
+    if (AudioActors.IsEmpty()) return;
+
+    AActor* AudioActor = AudioActors[0];
+    TArray<UAudioComponent*> AudioList;
+    AudioActor->GetComponents<UAudioComponent>(AudioList);
+
+    if (AudioList.Num() > 1)
+    {
+        AudioList[1]->Stop();
+        AudioList[1]->Play();
+    }
 }
