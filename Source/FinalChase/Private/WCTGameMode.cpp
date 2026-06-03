@@ -10,7 +10,7 @@
 
 AWCTGameMode::AWCTGameMode()
 {
-    TotalRounds = 2;
+    TotalRounds = 8;
     PreRoundSeconds = 8.0f;
     ChasingSeconds = 20.0f;
     RoundEndSeconds = 2.0f;
